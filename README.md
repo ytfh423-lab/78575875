@@ -77,19 +77,30 @@
 - Docker
 - Docker Compose
 
-### 2. 获取项目并配置
+### 2. 创建目录和配置文件
 
+新建一个目录并进入：
 ```bash
-# 克隆项目并进入目录
-git clone <repository-url>
-cd team-manage
-
-# 复制配置文件
-cp .env.example .env
+mkdir team-manage && cd team-manage
 ```
 
-编辑 `.env` 文件：
+创建 `docker-compose.yml` 文件：
+```yaml
+services:
+  app:
+    image: npckf/team-manage:latest
+    container_name: team-manage-app
+    ports:
+      - "${APP_PORT:-8008}:${APP_PORT:-8008}"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    restart: always
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/team_manage.db
+```
 
+创建 `.env` 文件，可以直接手写或者使用以下模板修改：
 ```env
 # 应用配置
 APP_NAME=GPT Team 管理系统
@@ -123,11 +134,11 @@ JWT_VERIFY_SIGNATURE=False
 ### 3. 启动应用
 
 ```bash
-# 构建并启动容器
+# 拉取镜像并启动容器
 docker compose up -d
 ```
 
-Docker 配置中已自动将宿主机的 `data/` 目录和 `.env` 文件映射到容器内部，因此你的数据会自动保存在项目根目录下，容器重启或删除后数据依然存在。
+Docker 配置中已自动将宿主机的 `data/` 目录和 `.env` 文件映射到容器内部，因此你的数据会自动保存在项目根目录下，容器重启或升级更新时数据依然存在。
 
 ### 4. 访问应用
 
