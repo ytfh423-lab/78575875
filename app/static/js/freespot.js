@@ -5,7 +5,7 @@
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function showToast(message, type) {
@@ -14,13 +14,13 @@ function showToast(message, type) {
     toast.textContent = message;
     toast.className = 'toast toast-' + (type || 'info') + ' show';
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(function() {
+    window._toastTimer = setTimeout(function () {
         toast.classList.remove('show');
     }, 3500);
 }
 
 // 页面加载时获取免费车位列表
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadFreeSpots();
 });
 
@@ -45,27 +45,35 @@ async function loadFreeSpots() {
                 '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🚏</div>' +
                 '<p style="font-size:1rem;font-weight:600;">' + t('freespot_no_spots') + '</p>' +
                 '<p style="font-size:0.85rem;color:#999;margin-top:0.4rem;">' + t('freespot_redirecting') + '</p></div>';
-            setTimeout(function() {
+            setTimeout(function () {
                 window.location.href = '/waiting-room';
             }, 1500);
             return;
         }
 
         var html = '';
-        data.teams.forEach(function(team) {
+        var planLabels = {
+            'chatgptteamplan': 'Team',
+            'chatgptplusplan': 'Plus',
+            'chatgptproplan': 'Pro',
+            'chatgptenterpriseplan': 'Enterprise'
+        };
+        data.teams.forEach(function (team) {
             var spotsLeft = team.available_spots || (team.max_members - team.current_members);
+            var planRaw = (team.subscription_plan || '').toLowerCase().replace(/[\s_-]/g, '');
+            var planLabel = planLabels[planRaw] || team.subscription_plan || '';
             html += '<div class="freespot-item">';
             html += '<div class="freespot-info">';
             html += '<div class="freespot-name">' + escapeHtml(team.team_name || 'Team ' + team.id) + '</div>';
             html += '<div class="freespot-meta">';
-            html += '<span><i data-lucide="users" style="width:12px;height:12px;"></i> ' + team.current_members + '/' + team.max_members + '</span>';
+            html += '<span><i data-lucide="users" style="width:13px;height:13px;"></i> ' + team.current_members + ' / ' + team.max_members + '</span>';
             html += '<span class="freespot-avail">' + spotsLeft + ' ' + t('freespot_avail') + '</span>';
-            if (team.subscription_plan) {
-                html += '<span>' + escapeHtml(team.subscription_plan) + '</span>';
+            if (planLabel) {
+                html += '<span class="freespot-plan">' + escapeHtml(planLabel) + '</span>';
             }
             html += '</div></div>';
-            html += '<button class="btn btn-primary btn-sm freespot-join-btn" onclick="joinFreeSpot(' + team.id + ', this)">';
-            html += '<i data-lucide="log-in"></i> ' + t('freespot_join') + '</button>';
+            html += '<button class="freespot-join-btn" onclick="joinFreeSpot(' + team.id + ', this)">';
+            html += '<i data-lucide="log-in" style="width:15px;height:15px;"></i> ' + t('freespot_join') + '</button>';
             html += '</div>';
         });
         listDiv.innerHTML = html;
@@ -112,7 +120,7 @@ async function joinFreeSpot(teamId, btnEl) {
         });
 
         if (!res.ok) {
-            var err = await res.json().catch(function() { return { detail: t('freespot_join_fail') }; });
+            var err = await res.json().catch(function () { return { detail: t('freespot_join_fail') }; });
             showToast(err.detail || t('freespot_join_fail'), 'error');
             if (btnEl) {
                 btnEl.disabled = false;

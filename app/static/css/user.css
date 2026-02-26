@@ -477,6 +477,120 @@ body {
     }
 }
 
+/* ===== 免费车位列表 ===== */
+.freespot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 1rem;
+}
+
+.freespot-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 1rem 1.2rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    transition: all 0.25s ease;
+}
+
+.freespot-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--border-highlight);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+
+.freespot-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.freespot-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.freespot-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+}
+
+.freespot-meta i,
+.freespot-meta svg {
+    vertical-align: -2px;
+}
+
+.freespot-avail {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(16,185,129,0.12);
+    color: #10b981;
+    border: 1px solid rgba(16,185,129,0.22);
+}
+
+.freespot-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: rgba(99,102,241,0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99,102,241,0.18);
+}
+
+.freespot-join-btn {
+    flex-shrink: 0;
+    padding: 0.55rem 1.2rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 10px var(--primary-glow);
+    white-space: nowrap;
+}
+
+.freespot-join-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 18px var(--primary-glow);
+    filter: brightness(1.08);
+}
+
+.freespot-join-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     body {
