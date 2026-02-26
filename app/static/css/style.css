@@ -175,6 +175,8 @@ body {
 .main-content {
     flex: 1;
     padding: 2rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .page-header {
@@ -642,6 +644,19 @@ body {
         align-items: flex-start;
         gap: 1rem;
     }
+
+    .main-content {
+        padding: 1rem;
+    }
+
+    .content-section {
+        padding: 1rem;
+    }
+
+    .table-container {
+        margin: 1rem -1rem;
+        padding: 0 1rem;
+    }
 }
 
 /* 导入页面样式 */
@@ -1044,6 +1059,7 @@ body::after {
 }
 
 @keyframes lanternFloat {
+
     0%,
     100% {
         transform: translateY(0);
@@ -1493,6 +1509,7 @@ body::after {
 }
 
 @media (max-width: 900px) {
+
     body::before,
     body::after {
         width: 96px;

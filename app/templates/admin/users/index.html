@@ -19,9 +19,9 @@
 
 <div class="section-header">
     <div class="filter-buttons">
-        <form action="/admin/users" method="get" style="display: flex; gap: 0.5rem; width: 100%;">
-            <input type="text" name="search" class="form-input" style="max-width: 300px;" placeholder="搜索用户名、昵称或邮箱"
-                value="{{ search }}">
+        <form action="/admin/users" method="get" style="display: flex;gap: 0.5rem;width: 100%;flex-wrap: wrap;">
+            <input type="text" name="search" class="form-control" style="max-width: 300px;flex: 1 1 auto;"
+                placeholder="搜索用户名、昵称或邮箱" value="{{ search }}">
             <button type="submit" class="btn btn-primary"><i data-lucide="search"></i> 搜索</button>
             {% if search %}
             <a href="/admin/users" class="btn btn-secondary">清除</a>
@@ -128,21 +128,21 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>目标用户</label>
-                <div class="form-input" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
+                <div class="form-control" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
                     id="adjustTargetUser"></div>
             </div>
             <div class="form-group">
                 <label>当前积分</label>
-                <div class="form-input" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
+                <div class="form-control" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
                     id="adjustCurrentPoints"></div>
             </div>
             <div class="form-group">
                 <label for="adjustChange">调整数量 (正数增加，负数扣除)</label>
-                <input type="number" id="adjustChange" class="form-input" placeholder="例如: 100 或 -50" required>
+                <input type="number" id="adjustChange" class="form-control" placeholder="例如: 100 或 -50" required>
             </div>
             <div class="form-group">
                 <label for="adjustDescription">调整说明</label>
-                <input type="text" id="adjustDescription" class="form-input" placeholder="例如: 活动奖励" value="管理员手动调整">
+                <input type="text" id="adjustDescription" class="form-control" placeholder="例如: 活动奖励" value="管理员手动调整">
             </div>
         </div>
         <div class="modal-footer"
