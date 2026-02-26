@@ -67,6 +67,7 @@ class RedemptionCode(Base):
     code = Column(String(32), unique=True, nullable=False, comment="兑换码")
     status = Column(String(20), default="unused", comment="状态: unused/used/expired")
     is_warranty = Column(Boolean, default=False, comment="是否为质保兑换码")
+    is_points_only = Column(Boolean, default=False, comment="是否为积分兑换专属")
     warranty_days = Column(Integer, comment="质保天数（仅质保码有效，空则用全局默认）")
     created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
     expires_at = Column(DateTime, comment="过期时间")

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
@@ -66,6 +66,7 @@ class CodeGenerateRequest(BaseModel):
     expires_days: Optional[int] = Field(None, description="有效期天数")
     is_warranty: bool = Field(False, description="是否为质保兑换码")
     warranty_days: Optional[int] = Field(None, description="质保天数（质保码时可设置，空则用全局默认）")
+    is_points_only: bool = Field(False, description="是否为积分兑换专属")
 
 
 class ExclusiveInviteBatchRequest(BaseModel):
@@ -752,7 +753,8 @@ async def generate_codes(
                 code=generate_data.code,
                 expires_days=generate_data.expires_days,
                 is_warranty=generate_data.is_warranty,
-                warranty_days=generate_data.warranty_days if generate_data.is_warranty else None
+                warranty_days=generate_data.warranty_days if generate_data.is_warranty else None,
+                is_points_only=generate_data.is_points_only
             )
 
             if not result["success"]:
@@ -779,7 +781,8 @@ async def generate_codes(
                 count=generate_data.count,
                 expires_days=generate_data.expires_days,
                 is_warranty=generate_data.is_warranty,
-                warranty_days=generate_data.warranty_days if generate_data.is_warranty else None
+                warranty_days=generate_data.warranty_days if generate_data.is_warranty else None,
+                is_points_only=generate_data.is_points_only
             )
 
             if not result["success"]:
@@ -1159,6 +1162,106 @@ async def records_page(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取使用记录失败: {str(e)}"
         )
+
+
+# ==================== LinuxDo 用户管理路由 ====================
+
+
+class AdjustPointsRequest(BaseModel):
+    """积分调整请求"""
+    change: int = Field(..., description="积分变动，正数增加负数扣减")
+    description: str = Field("管理员手动调整", description="变动说明")
+
+
+@router.get("/users", response_class=HTMLResponse)
+async def admin_users_page(
+    request: Request,
+    search: Optional[str] = None,
+    page: Optional[str] = "1",
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin)
+):
+    """LinuxDo 用户管理页面"""
+    from app.main import templates
+    from app.models import LinuxDoUser
+
+    try:
+        page_num = max(1, int(page or "1"))
+    except ValueError:
+        page_num = 1
+    page_size = 20
+
+    query = select(LinuxDoUser)
+    count_query = select(func.count(LinuxDoUser.id))
+
+    if search:
+        search_filter = or_(
+            LinuxDoUser.username.contains(search),
+            LinuxDoUser.display_name.contains(search),
+            LinuxDoUser.email.contains(search),
+        )
+        query = query.where(search_filter)
+        count_query = count_query.where(search_filter)
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page_num = min(page_num, total_pages)
+
+    query = query.order_by(LinuxDoUser.created_at.desc()).offset((page_num - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    users = result.scalars().all()
+
+    return templates.TemplateResponse(
+        "admin/users/index.html",
+        {
+            "request": request,
+            "users": users,
+            "search": search or "",
+            "current_page": page_num,
+            "total_pages": total_pages,
+            "total_users": total,
+        }
+    )
+
+
+@router.post("/users/{user_id}/adjust-points")
+async def admin_adjust_points(
+    user_id: int,
+    payload: AdjustPointsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin)
+):
+    """管理员手动调整用户积分"""
+    from app.models import LinuxDoUser, PointTransaction
+
+    result = await db.execute(select(LinuxDoUser).where(LinuxDoUser.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+
+    if payload.change == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="变动值不能为 0")
+
+    new_points = user.points + payload.change
+    if new_points < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"积分不足，当前 {user.points}，调整 {payload.change}")
+
+    user.points = new_points
+    db.add(PointTransaction(
+        user_id=user.id,
+        change=payload.change,
+        type="adjust",
+        description=payload.description or "管理员手动调整",
+    ))
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "success": True,
+        "message": f"已调整 {payload.change:+d} 积分",
+        "points": user.points,
+    }
 
 
 # ==================== 候车室管理路由 ====================

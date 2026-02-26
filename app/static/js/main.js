@@ -265,8 +265,9 @@ async function generateSingle(event) {
     const customCode = form.customCode.value.trim();
     const expiresDays = form.expiresDays.value;
     const isWarranty = form.isWarranty ? form.isWarranty.checked : false;
+    const isPointsOnly = form.isPointsOnly ? form.isPointsOnly.checked : false;
 
-    const data = { type: 'single', is_warranty: isWarranty };
+    const data = { type: 'single', is_warranty: isWarranty, is_points_only: isPointsOnly };
     if (customCode) data.code = customCode;
     if (expiresDays) data.expires_days = parseInt(expiresDays);
     if (isWarranty && form.warrantyDays && form.warrantyDays.value) {
@@ -298,13 +299,14 @@ async function generateBatch(event) {
     const count = parseInt(form.count.value);
     const expiresDays = form.expiresDays.value;
     const isWarranty = form.isWarranty ? form.isWarranty.checked : false;
+    const isPointsOnly = form.isPointsOnly ? form.isPointsOnly.checked : false;
 
     if (count < 1 || count > 1000) {
         showToast('生成数量必须在1-1000之间', 'error');
         return;
     }
 
-    const data = { type: 'batch', count: count, is_warranty: isWarranty };
+    const data = { type: 'batch', count: count, is_warranty: isWarranty, is_points_only: isPointsOnly };
     if (expiresDays) data.expires_days = parseInt(expiresDays);
     if (isWarranty && form.warrantyDays && form.warrantyDays.value) {
         data.warranty_days = parseInt(form.warrantyDays.value);

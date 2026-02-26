@@ -55,6 +55,12 @@
                         <span class="menu-text">候车室管理</span>
                     </a>
                 </li>
+                <li class="menu-item {% if active_page == 'users' %}active{% endif %}">
+                    <a href="/admin/users">
+                        <span class="menu-icon" data-lucide="users"></span>
+                        <span class="menu-text">LinuxDo用户</span>
+                    </a>
+                </li>
                 <li class="menu-item {% if active_page == 'settings' %}active{% endif %}">
                     <a href="/admin/settings">
                         <span class="menu-icon" data-lucide="settings"></span>
@@ -169,9 +175,14 @@
                                 onchange="document.getElementById('singleWarrantyDaysGroup').style.display=this.checked?'block':'none'">
                             <label for="singleWarranty" style="margin:0;cursor:pointer;">🛡️ 质保兑换码（封号后可重新兑换）</label>
                         </div>
+                        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                            <input type="checkbox" name="isPointsOnly" id="singlePointsOnly" style="width:auto;">
+                            <label for="singlePointsOnly" style="margin:0;cursor:pointer;">💎 积分兑换专属（仅允许在商城兑换）</label>
+                        </div>
                         <div class="form-group" id="singleWarrantyDaysGroup" style="display:none;">
                             <label>质保天数</label>
-                            <input type="number" name="warrantyDays" class="form-control" placeholder="留空则使用全局默认值" min="1" max="3650">
+                            <input type="number" name="warrantyDays" class="form-control" placeholder="留空则使用全局默认值"
+                                min="1" max="3650">
                             <p style="font-size:0.8rem;color:#999;margin-top:4px;">每个兑换码独立的质保期，留空则使用系统设置中的默认值</p>
                         </div>
                         <button type="submit" class="btn btn-primary">生成兑换码</button>
@@ -202,9 +213,14 @@
                                 onchange="document.getElementById('batchWarrantyDaysGroup').style.display=this.checked?'block':'none'">
                             <label for="batchWarranty" style="margin:0;cursor:pointer;">🛡️ 质保兑换码（封号后可重新兑换）</label>
                         </div>
+                        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                            <input type="checkbox" name="isPointsOnly" id="batchPointsOnly" style="width:auto;">
+                            <label for="batchPointsOnly" style="margin:0;cursor:pointer;">💎 积分兑换专属（仅允许在商城兑换）</label>
+                        </div>
                         <div class="form-group" id="batchWarrantyDaysGroup" style="display:none;">
                             <label>质保天数</label>
-                            <input type="number" name="warrantyDays" class="form-control" placeholder="留空则使用全局默认值" min="1" max="3650">
+                            <input type="number" name="warrantyDays" class="form-control" placeholder="留空则使用全局默认值"
+                                min="1" max="3650">
                             <p style="font-size:0.8rem;color:#999;margin-top:4px;">每个兑换码独立的质保期，留空则使用系统设置中的默认值</p>
                         </div>
                         <button type="submit" class="btn btn-primary">批量生成</button>

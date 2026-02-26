@@ -40,10 +40,14 @@
 
 <div class="section-header">
     <div class="filter-buttons">
-        <a href="/admin/codes?filter_status=all" class="btn btn-sm btn-secondary {{ 'active' if current_status == 'all' }}">全部</a>
-        <a href="/admin/codes?filter_status=unused" class="btn btn-sm btn-success {{ 'active' if current_status == 'unused' }}">未使用</a>
-        <a href="/admin/codes?filter_status=used" class="btn btn-sm btn-info {{ 'active' if current_status == 'used' }}">已使用</a>
-        <a href="/admin/codes?filter_status=expired" class="btn btn-sm btn-danger {{ 'active' if current_status == 'expired' }}">已过期</a>
+        <a href="/admin/codes?filter_status=all"
+            class="btn btn-sm btn-secondary {{ 'active' if current_status == 'all' }}">全部</a>
+        <a href="/admin/codes?filter_status=unused"
+            class="btn btn-sm btn-success {{ 'active' if current_status == 'unused' }}">未使用</a>
+        <a href="/admin/codes?filter_status=used"
+            class="btn btn-sm btn-info {{ 'active' if current_status == 'used' }}">已使用</a>
+        <a href="/admin/codes?filter_status=expired"
+            class="btn btn-sm btn-danger {{ 'active' if current_status == 'expired' }}">已过期</a>
     </div>
     <div class="action-buttons">
         <button onclick="showModal('generateCodeModal')" class="btn btn-primary">生成兑换码</button>
@@ -75,7 +79,13 @@
                             <i data-lucide="ticket" style="width:14px;height:14px;color:var(--text-muted);"></i>
                             <code>{{ code.code }}</code>
                             {% if code.is_warranty %}
-                            <span style="font-size:0.7rem;padding:1px 6px;border-radius:4px;background:rgba(59,130,246,0.1);color:#2563eb;font-weight:600;">🛡️质保{% if code.warranty_days %}{{ code.warranty_days }}天{% endif %}</span>
+                            <span
+                                style="font-size:0.7rem;padding:1px 6px;border-radius:4px;background:rgba(59,130,246,0.1);color:#2563eb;font-weight:600;">🛡️质保{%
+                                if code.warranty_days %}{{ code.warranty_days }}天{% endif %}</span>
+                            {% endif %}
+                            {% if code.is_points_only %}
+                            <span
+                                style="font-size:0.7rem;padding:1px 6px;border-radius:4px;background:rgba(234,179,8,0.1);color:#eab308;font-weight:600;">💎积分专属</span>
                             {% endif %}
                         </div>
                     </td>
@@ -113,25 +123,29 @@
     <!-- 分页 -->
     {% if total_pages > 1 %}
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 0.5rem 0;">
-        <span style="font-size:0.85rem;color:var(--text-muted);">共 {{ total_filtered }} 条，第 {{ current_page }}/{{ total_pages }} 页</span>
+        <span style="font-size:0.85rem;color:var(--text-muted);">共 {{ total_filtered }} 条，第 {{ current_page }}/{{
+            total_pages }} 页</span>
         <div style="display:flex;gap:6px;align-items:center;">
             {% if current_page > 1 %}
-            <a href="/admin/codes?page={{ current_page - 1 }}&filter_status={{ current_status }}" class="btn btn-sm btn-secondary">上一页</a>
+            <a href="/admin/codes?page={{ current_page - 1 }}&filter_status={{ current_status }}"
+                class="btn btn-sm btn-secondary">上一页</a>
             {% endif %}
             {% for p in range(1, total_pages + 1) %}
             {% if p == current_page %}
             <span class="btn btn-sm btn-primary" style="pointer-events:none;">{{ p }}</span>
-            {% elif p <= 3 or p > total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %}
-            <a href="/admin/codes?page={{ p }}&filter_status={{ current_status }}" class="btn btn-sm btn-secondary">{{ p }}</a>
-            {% elif p == 4 and current_page > 5 %}
-            <span style="color:var(--text-muted);">...</span>
-            {% elif p == total_pages - 2 and current_page < total_pages - 4 %}
-            <span style="color:var(--text-muted);">...</span>
-            {% endif %}
-            {% endfor %}
-            {% if current_page < total_pages %}
-            <a href="/admin/codes?page={{ current_page + 1 }}&filter_status={{ current_status }}" class="btn btn-sm btn-secondary">下一页</a>
-            {% endif %}
+            {% elif p <= 3 or p> total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %} <a
+                    href="/admin/codes?page={{ p }}&filter_status={{ current_status }}"
+                    class="btn btn-sm btn-secondary">{{ p }}</a>
+                    {% elif p == 4 and current_page > 5 %}
+                    <span style="color:var(--text-muted);">...</span>
+                    {% elif p == total_pages - 2 and current_page < total_pages - 4 %} <span
+                        style="color:var(--text-muted);">...</span>
+                        {% endif %}
+                        {% endfor %}
+                        {% if current_page < total_pages %} <a
+                            href="/admin/codes?page={{ current_page + 1 }}&filter_status={{ current_status }}"
+                            class="btn btn-sm btn-secondary">下一页</a>
+                            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -148,69 +162,69 @@
 
 {% block extra_js %}
 <script>
-async function generateTestCode() {
-    try {
-        const response = await fetch('/admin/codes/generate-test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await response.json();
+    async function generateTestCode() {
+        try {
+            const response = await fetch('/admin/codes/generate-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
 
-        if (response.ok && result.success) {
-            if (result.code && typeof copyToClipboard === 'function') {
-                await copyToClipboard(result.code);
+            if (response.ok && result.success) {
+                if (result.code && typeof copyToClipboard === 'function') {
+                    await copyToClipboard(result.code);
+                }
+                showToast('测试兑换码已生成（仅用于动画测试）', 'success');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                showToast(result.error || '生成测试兑换码失败', 'error');
             }
-            showToast('测试兑换码已生成（仅用于动画测试）', 'success');
-            setTimeout(() => window.location.reload(), 1200);
-        } else {
-            showToast(result.error || '生成测试兑换码失败', 'error');
+        } catch (error) {
+            showToast('网络错误', 'error');
         }
-    } catch (error) {
-        showToast('网络错误', 'error');
     }
-}
 
-async function deleteCode(code) {
-    if (!confirm(`确定要删除兑换码 ${code} 吗？`)) return;
+    async function deleteCode(code) {
+        if (!confirm(`确定要删除兑换码 ${code} 吗？`)) return;
 
-    try {
-        const response = await fetch(`/admin/codes/${encodeURIComponent(code)}/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await response.json();
+        try {
+            const response = await fetch(`/admin/codes/${encodeURIComponent(code)}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
 
-        if (response.ok && result.success) {
-            showToast('删除成功', 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showToast(result.error || '删除失败', 'error');
+            if (response.ok && result.success) {
+                showToast('删除成功', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(result.error || '删除失败', 'error');
+            }
+        } catch (error) {
+            showToast('网络错误', 'error');
         }
-    } catch (error) {
-        showToast('网络错误', 'error');
     }
-}
 
-async function exportCodes() {
-    try {
-        const response = await fetch('/admin/codes/export');
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `redemption_codes_${Date.now()}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('导出成功', 'success');
-        } else {
-            showToast('导出失败', 'error');
+    async function exportCodes() {
+        try {
+            const response = await fetch('/admin/codes/export');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `redemption_codes_${Date.now()}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('导出成功', 'success');
+            } else {
+                showToast('导出失败', 'error');
+            }
+        } catch (error) {
+            showToast('网络错误', 'error');
         }
-    } catch (error) {
-        showToast('网络错误', 'error');
     }
-}
 </script>
 {% endblock %}

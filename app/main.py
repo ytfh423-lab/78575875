@@ -13,6 +13,7 @@ import asyncio
 from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
+from sqlalchemy import text
 
 from contextlib import asynccontextmanager
 # 导入路由
@@ -41,6 +42,17 @@ async def lifespan(app: FastAPI):
         
         # 1. 创建数据库表
         await init_db()
+
+        # 1.5. 简单的数据库迁移（针对现有 DB 没有 is_points_only 字段）
+        async with AsyncSessionLocal() as session:
+            try:
+                await session.execute(text("ALTER TABLE redemption_codes ADD COLUMN is_points_only BOOLEAN DEFAULT 0"))
+                await session.commit()
+                logger.info("自动执行数据库迁移：添加了 is_points_only 字段")
+            except Exception:
+                # 忽略，可能字段已经存在了
+                pass
+        
         # 2. 初始化管理员密码（如果不存在）
         async with AsyncSessionLocal() as session:
             await auth_service.initialize_admin_password(session)

@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - GPT Team 管理系统{% block endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>LinuxDo 用户管理</h2>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-icon"><i data-lucide="users"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">总注册用户</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-header">
+    <div class="filter-buttons">
+        <form action="/admin/users" method="get" style="display: flex; gap: 0.5rem; width: 100%;">
+            <input type="text" name="search" class="form-input" style="max-width: 300px;" placeholder="搜索用户名、昵称或邮箱"
+                value="{{ search }}">
+            <button type="submit" class="btn btn-primary"><i data-lucide="search"></i> 搜索</button>
+            {% if search %}
+            <a href="/admin/users" class="btn btn-secondary">清除</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="content-section">
+    {% if users %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>头像</th>
+                    <th>LinuxDo 用户名</th>
+                    <th>显示名称</th>
+                    <th>邮箱</th>
+                    <th>积分余额</th>
+                    <th>最后签到</th>
+                    <th>注册时间</th>
+                    <th style="text-align: right;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><span class="text-muted">{{ user.id }}</span></td>
+                    <td>
+                        {% if user.avatar_url %}
+                        <img src="{{ user.avatar_url }}" alt="头像"
+                            style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                        <div
+                            style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--text-muted);">
+                            {{ user.username[0]|upper }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ user.username }}</code></td>
+                    <td>{{ user.display_name }}</td>
+                    <td>{{ user.email or '-' }}</td>
+                    <td><strong style="color: var(--primary);">{{ user.points }}</strong></td>
+                    <td>{{ user.last_sign_in_at|format_datetime if user.last_sign_in_at else '-' }}</td>
+                    <td>{{ user.created_at|format_datetime if user.created_at else '-' }}</td>
+                    <td style="text-align: right;">
+                        <button
+                            onclick="openAdjustPointsModal('{{ user.id }}', '{{ user.username }}', '{{ user.points }}')"
+                            class="btn btn-sm btn-secondary" title="调整积分">
+                            <i data-lucide="coins"></i> 调整积分
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if total_pages > 1 %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 0.5rem 0;">
+        <span style="font-size:0.85rem;color:var(--text-muted);">共 {{ total_users }} 条，第 {{ current_page }}/{{
+            total_pages }} 页</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+            {% if current_page > 1 %}
+            <a href="/admin/users?page={{ current_page - 1 }}&search={{ search }}"
+                class="btn btn-sm btn-secondary">上一页</a>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+            {% if p == current_page %}
+            <span class="btn btn-sm btn-primary" style="pointer-events:none;">{{ p }}</span>
+            {% elif p <= 3 or p> total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %} <a
+                    href="/admin/users?page={{ p }}&search={{ search }}" class="btn btn-sm btn-secondary">{{ p }}</a>
+                    {% elif p == 4 and current_page > 5 %}
+                    <span style="color:var(--text-muted);">...</span>
+                    {% elif p == total_pages - 2 and current_page < total_pages - 4 %} <span
+                        style="color:var(--text-muted);">...</span>
+                        {% endif %}
+                        {% endfor %}
+                        {% if current_page < total_pages %} <a
+                            href="/admin/users?page={{ current_page + 1 }}&search={{ search }}"
+                            class="btn btn-sm btn-secondary">下一页</a>
+                            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i data-lucide="users-2" style="width:48px;height:48px;margin-bottom:1rem;opacity:0.2;"></i>
+        <p>暂无用户数据</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 积分调整模态框 -->
+<div id="adjustPointsModal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-header">
+            <h3>调整用户积分</h3>
+            <button class="close" onclick="closeModal('adjustPointsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>目标用户</label>
+                <div class="form-input" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
+                    id="adjustTargetUser"></div>
+            </div>
+            <div class="form-group">
+                <label>当前积分</label>
+                <div class="form-input" style="background: rgba(0,0,0,0.1); color: var(--text-muted);"
+                    id="adjustCurrentPoints"></div>
+            </div>
+            <div class="form-group">
+                <label for="adjustChange">调整数量 (正数增加，负数扣除)</label>
+                <input type="number" id="adjustChange" class="form-input" placeholder="例如: 100 或 -50" required>
+            </div>
+            <div class="form-group">
+                <label for="adjustDescription">调整说明</label>
+                <input type="text" id="adjustDescription" class="form-input" placeholder="例如: 活动奖励" value="管理员手动调整">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('adjustPointsModal')">取消</button>
+            <button class="btn btn-primary" onclick="submitAdjustPoints()" id="btnSubmitAdjust">
+                <i data-lucide="save"></i> 确认调整
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentAdjustUserId = null;
+
+    function openAdjustPointsModal(userId, username, currentPoints) {
+        currentAdjustUserId = userId;
+        document.getElementById('adjustTargetUser').innerText = username;
+        document.getElementById('adjustCurrentPoints').innerText = currentPoints;
+        document.getElementById('adjustChange').value = '';
+        showModal('adjustPointsModal');
+    }
+
+    async function submitAdjustPoints() {
+        if (!currentAdjustUserId) return;
+
+        const change = parseInt(document.getElementById('adjustChange').value);
+        const description = document.getElementById('adjustDescription').value.trim();
+
+        if (isNaN(change) || change === 0) {
+            showToast('请输入有效的调整数值（不能为0）', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitAdjust');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 执行中...';
+        lucide.createIcons();
+
+        try {
+            const response = await fetch(`/admin/users/${currentAdjustUserId}/adjust-points`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    change: change,
+                    description: description
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showToast(result.message || '调整成功', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(result.detail || result.error || '调整失败', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        } catch (error) {
+            showToast('网络错误，请稍后重试', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            lucide.createIcons();
+        }
+    }
+</script>
+{% endblock %}

@@ -175,16 +175,31 @@ class LinuxDoAuthService:
         if item_key != "redeem_code":
             return {"success": False, "error": "该商品暂未开放"}
 
+        # 优先分配积分专属码，没有再取普通码
         code_result = await db.execute(
             select(RedemptionCode)
             .where(
                 RedemptionCode.status == "unused",
                 RedemptionCode.is_shop_sold == False,
+                RedemptionCode.is_points_only == True,
             )
             .order_by(RedemptionCode.id.asc())
             .limit(1)
         )
         redemption_code = code_result.scalar_one_or_none()
+
+        if not redemption_code:
+            code_result = await db.execute(
+                select(RedemptionCode)
+                .where(
+                    RedemptionCode.status == "unused",
+                    RedemptionCode.is_shop_sold == False,
+                    RedemptionCode.is_points_only == False,
+                )
+                .order_by(RedemptionCode.id.asc())
+                .limit(1)
+            )
+            redemption_code = code_result.scalar_one_or_none()
 
         if not redemption_code:
             return {"success": False, "error": "商城库存不足，请稍后再试"}
