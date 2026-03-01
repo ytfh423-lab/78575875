@@ -66,6 +66,22 @@ def _is_group(update: Update) -> bool:
     return update.effective_chat.type in ("group", "supergroup")
 
 
+def _get_mention(tg_user) -> str:
+    """获取用户@提及文本"""
+    if tg_user.username:
+        return f"@{tg_user.username}"
+    return tg_user.first_name or f"用户{tg_user.id}"
+
+
+async def _send_response(message, text, mention="", reply_markup=None):
+    """发送响应：有mention时发新消息并@用户，否则回复原消息"""
+    if mention:
+        full_text = f"{mention}\n{text}"
+        await message.chat.send_message(full_text, reply_markup=reply_markup)
+    else:
+        await message.reply_text(text, reply_markup=reply_markup)
+
+
 def _main_menu_keyboard():
     return InlineKeyboardMarkup([
         [
@@ -214,26 +230,29 @@ async def cmd_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ──────────── 回调查询处理器 ────────────
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理内联键盘回调"""
+    """处理内联键盘回调 — 发送新消息并@用户"""
     query = update.callback_query
     await query.answer()
     data = query.data
+    mention = _get_mention(update.effective_user)
+    chat = query.message.chat
+    in_group = _is_group(update)
 
     if data == "main_menu":
-        await query.edit_message_text(
-            "请选择以下操作：",
+        await chat.send_message(
+            f"{mention}\n请选择以下操作：",
             reply_markup=_main_menu_keyboard(),
         )
     elif data == "free_spots":
-        await _show_free_spots(query.message, update.effective_user, edit=True)
+        await _show_free_spots(query.message, update.effective_user, mention=mention)
     elif data == "redeem_start":
         from app.services.team import TeamService
         team_svc = TeamService()
         async with AsyncSessionLocal() as session:
             user = await _get_or_create_user(session, update.effective_user)
             if not user.email:
-                await query.edit_message_text(
-                    "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
+                await chat.send_message(
+                    f"{mention}\n⚠️ 请先绑定邮箱才能使用兑换码\n\n"
                     "发送 /bindmail 你的邮箱  来绑定",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
@@ -242,7 +261,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             teams_result = await team_svc.get_available_teams(session)
 
-        lines = ["🎫 兑换码上车\n"]
+        lines = [f"{mention}\n🎫 兑换码上车\n"]
         teams = teams_result.get("teams", []) if teams_result.get("success") else []
         if teams:
             total_spots = sum(t["max_members"] - t["current_members"] for t in teams)
@@ -253,31 +272,38 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lines.append("")
         else:
             lines.append("⚠️ 当前暂无可用车位，兑换后将自动分配\n")
-        lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
 
-        context.user_data["state"] = "waiting_redeem_code"
-        await query.edit_message_text(
+        if in_group:
+            lines.append("请直接发送：/redeem 你的兑换码\n例如：/redeem ABC123")
+        else:
+            lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
+            context.user_data["state"] = "waiting_redeem_code"
+
+        await chat.send_message(
             "\n".join(lines),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
         )
     elif data == "waiting_room":
-        await _join_waiting_room(query.message, update.effective_user, edit=True)
+        await _join_waiting_room(query.message, update.effective_user, mention=mention)
     elif data == "bind_email":
-        await query.edit_message_text(
-            "📧 请发送绑定邮箱命令：\n/bindmail 你的邮箱\n\n例如：/bindmail user@example.com",
+        tip = f"{mention}\n📧 请发送绑定邮箱命令：\n/bindmail 你的邮箱\n\n例如：/bindmail user@example.com"
+        if in_group:
+            tip += "\n\n💡 提示：建议私聊机器人绑定邮箱，避免泄露个人信息"
+        await chat.send_message(
+            tip,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
         )
     elif data == "sign_in":
-        await _do_sign_in(query.message, update.effective_user, edit=True)
+        await _do_sign_in(query.message, update.effective_user, mention=mention)
     elif data == "my_info":
-        await _show_my_info(query.message, update.effective_user, edit=True)
+        await _show_my_info(query.message, update.effective_user, mention=mention)
     elif data.startswith("join_free_"):
         team_id = int(data.replace("join_free_", ""))
-        await _join_free_team(query.message, update.effective_user, team_id)
+        await _join_free_team(query.message, update.effective_user, team_id, mention=mention)
 
 
 # ──────────── 文本消息处理器 ────────────
@@ -304,7 +330,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ──────────── 业务逻辑函数 ────────────
 
-async def _show_free_spots(message, tg_user, edit=False):
+async def _show_free_spots(message, tg_user, mention=""):
     """显示免费车位列表"""
     from app.services.team import TeamService
     team_service = TeamService()
@@ -320,7 +346,7 @@ async def _show_free_spots(message, tg_user, edit=False):
             [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")],
         ])
     else:
-        lines = ["🆓 *可用免费车位*\n"]
+        lines = ["🆓 可用免费车位\n"]
         buttons = []
         for t in result["teams"]:
             avail = t["max_members"] - t["current_members"]
@@ -336,13 +362,10 @@ async def _show_free_spots(message, tg_user, edit=False):
         text = "\n".join(lines)
         kb = InlineKeyboardMarkup(buttons)
 
-    if edit:
-        await message.edit_text(text, reply_markup=kb)
-    else:
-        await message.reply_text(text, reply_markup=kb)
+    await _send_response(message, text, mention=mention, reply_markup=kb)
 
 
-async def _join_free_team(message, tg_user, team_id: int):
+async def _join_free_team(message, tg_user, team_id: int, mention=""):
     """加入免费车位"""
     from app.services.team import team_service
 
@@ -350,9 +373,9 @@ async def _join_free_team(message, tg_user, team_id: int):
         user = await _get_or_create_user(session, tg_user)
 
         if not user.email:
-            await message.edit_text(
-                "⚠️ 请先绑定邮箱才能上车\n\n"
-                "发送 /bindmail 你的邮箱",
+            await _send_response(message,
+                "⚠️ 请先绑定邮箱才能上车\n\n发送 /bindmail 你的邮箱",
+                mention=mention,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
                 ]),
@@ -364,21 +387,21 @@ async def _join_free_team(message, tg_user, team_id: int):
         team = team_result.scalar_one_or_none()
 
         if not team:
-            await message.edit_text("❌ 该车位不存在",
+            await _send_response(message, "❌ 该车位不存在", mention=mention,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ 返回", callback_data="free_spots")]
                 ]))
             return
 
         if not team.is_free_spot or team.is_exclusive:
-            await message.edit_text("❌ 该车位不可用",
+            await _send_response(message, "❌ 该车位不可用", mention=mention,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ 返回", callback_data="free_spots")]
                 ]))
             return
 
         if team.current_members >= team.max_members:
-            await message.edit_text("❌ 该车位已满",
+            await _send_response(message, "❌ 该车位已满", mention=mention,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ 返回", callback_data="free_spots")]
                 ]))
@@ -387,23 +410,24 @@ async def _join_free_team(message, tg_user, team_id: int):
         join_result = await team_service.add_team_member(team.id, user.email, session)
 
     if join_result.get("success"):
-        await message.edit_text(
-            f"✅ 上车成功！请查收 {user.email} 的邀请邮件\n\n"
-            f"车队：{team.team_name}",
+        await _send_response(message,
+            f"✅ 上车成功！请查收 {user.email} 的邀请邮件\n\n车队：{team.team_name}",
+            mention=mention,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
         )
     else:
-        await message.edit_text(
+        await _send_response(message,
             f"❌ 上车失败：{join_result.get('error', '未知错误')}",
+            mention=mention,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回", callback_data="free_spots")]
             ]),
         )
 
 
-async def _join_waiting_room(message, tg_user, edit=False):
+async def _join_waiting_room(message, tg_user, mention=""):
     """加入候车室"""
     from app.services.waiting_room import waiting_room_service
 
@@ -415,10 +439,7 @@ async def _join_waiting_room(message, tg_user, edit=False):
             kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ])
-            if edit:
-                await message.edit_text(text, reply_markup=kb)
-            else:
-                await message.reply_text(text, reply_markup=kb)
+            await _send_response(message, text, mention=mention, reply_markup=kb)
             return
 
         result = await waiting_room_service.join(session, user.email)
@@ -429,10 +450,7 @@ async def _join_waiting_room(message, tg_user, edit=False):
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
     ])
-    if edit:
-        await message.edit_text(text, reply_markup=kb)
-    else:
-        await message.reply_text(text, reply_markup=kb)
+    await _send_response(message, text, mention=mention, reply_markup=kb)
 
 
 async def _do_redeem(message, tg_user, code: str):
@@ -478,7 +496,7 @@ async def _do_redeem(message, tg_user, code: str):
         )
 
 
-async def _do_sign_in(message, tg_user, edit=False):
+async def _do_sign_in(message, tg_user, mention=""):
     """每日签到"""
     from app.config import settings as app_settings
     daily_points = int(app_settings.user_daily_signin_points)
@@ -498,13 +516,10 @@ async def _do_sign_in(message, tg_user, edit=False):
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
     ])
-    if edit:
-        await message.edit_text(text, reply_markup=kb)
-    else:
-        await message.reply_text(text, reply_markup=kb)
+    await _send_response(message, text, mention=mention, reply_markup=kb)
 
 
-async def _show_my_info(message, tg_user, edit=False):
+async def _show_my_info(message, tg_user, mention=""):
     """显示用户信息"""
     async with AsyncSessionLocal() as session:
         user = await _get_or_create_user(session, tg_user)
@@ -521,8 +536,8 @@ async def _show_my_info(message, tg_user, edit=False):
     )
 
     text = (
-        f"👤 *{display}*\n\n"
-        f"账号编号：`{user.tg_user_id}`\n"
+        f"👤 {display}\n\n"
+        f"账号编号：{user.tg_user_id}\n"
         f"邮箱：{email_str}\n"
         f"积分：{user.points}\n"
         f"最后签到：{sign_in_str}\n"
@@ -531,10 +546,7 @@ async def _show_my_info(message, tg_user, edit=False):
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
     ])
-    if edit:
-        await message.edit_text(text, parse_mode="Markdown", reply_markup=kb)
-    else:
-        await message.reply_text(text, parse_mode="Markdown", reply_markup=kb)
+    await _send_response(message, text, mention=mention, reply_markup=kb)
 
 
 # ──────────── Bot 生命周期管理 ────────────
