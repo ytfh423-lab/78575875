@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime, date
 from typing import Optional
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -59,7 +59,12 @@ async def _get_or_create_user(
     return user
 
 
-# ──────────── 主菜单键盘 ────────────
+# ──────────── 辅助函数 ────────────
+
+def _is_group(update: Update) -> bool:
+    """判断是否在群组/超级群组中"""
+    return update.effective_chat.type in ("group", "supergroup")
+
 
 def _main_menu_keyboard():
     return InlineKeyboardMarkup([
@@ -86,9 +91,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = await _get_or_create_user(session, update.effective_user)
 
     display = user.first_name or user.username or f"用户{user.tg_user_id}"
-    await update.message.reply_text(
+    in_group = _is_group(update)
+    greeting = (
         f"👋 你好 {display}！欢迎使用 GPT 车队管理系统\n\n"
-        "请选择以下操作：",
+        "请选择以下操作："
+    )
+    if in_group:
+        greeting += "\n\n💡 提示：绑定邮箱等敏感操作建议私聊机器人"
+    await update.message.reply_text(
+        greeting,
         reply_markup=_main_menu_keyboard(),
     )
 
@@ -114,9 +125,10 @@ async def cmd_free(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """使用兑换码上车"""
+    """使用兑换码上车，支持 /redeem 兑换码 或交互式输入"""
     from app.services.team import TeamService
     team_svc = TeamService()
+    in_group = _is_group(update)
 
     async with AsyncSessionLocal() as session:
         user = await _get_or_create_user(session, update.effective_user)
@@ -128,6 +140,12 @@ async def cmd_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
         teams_result = await team_svc.get_available_teams(session)
+
+    # 如果直接带了兑换码参数，立即兑换
+    if context.args:
+        code = context.args[0].strip()
+        await _do_redeem(update.message, update.effective_user, code)
+        return
 
     # 构建车位信息
     lines = ["🎫 兑换码上车\n"]
@@ -141,9 +159,13 @@ async def cmd_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lines.append("")
     else:
         lines.append("⚠️ 当前暂无可用车位，兑换后将自动分配\n")
-    lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
 
-    context.user_data["state"] = "waiting_redeem_code"
+    if in_group:
+        lines.append("请直接发送：/redeem 你的兑换码\n例如：/redeem ABC123")
+    else:
+        lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
+        context.user_data["state"] = "waiting_redeem_code"
+
     await update.message.reply_text("\n".join(lines))
 
 
@@ -154,12 +176,13 @@ async def cmd_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_bindmail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """绑定邮箱"""
+    in_group = _is_group(update)
     args = context.args
     if not args:
-        await update.message.reply_text(
-            "📧 用法：/bindmail 你的邮箱\n"
-            "例如：/bindmail user@example.com"
-        )
+        tip = "📧 用法：/bindmail 你的邮箱\n例如：/bindmail user@example.com"
+        if in_group:
+            tip += "\n\n💡 提示：建议私聊机器人绑定邮箱，避免泄露个人信息"
+        await update.message.reply_text(tip)
         return
 
     email = args[0].strip().lower()
@@ -172,7 +195,10 @@ async def cmd_bindmail(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user.email = email
         await session.commit()
 
-    await update.message.reply_text(f"✅ 邮箱已绑定：{email}")
+    reply = f"✅ 邮箱已绑定：{email}"
+    if in_group:
+        reply += "\n\n⚠️ 您的邮箱已在群组中发送，建议删除上面的消息保护隐私"
+    await update.message.reply_text(reply)
 
 
 async def cmd_signin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -257,7 +283,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ──────────── 文本消息处理器 ────────────
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """处理普通文本消息（兑换码输入等）"""
+    """处理普通文本消息（兑换码输入等）—— 仅在私聊中响应"""
+    # 群组中不监听普通文本，避免刷屏
+    if _is_group(update):
+        return
+
     state = context.user_data.get("state")
 
     if state == "waiting_redeem_code":
@@ -266,7 +296,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _do_redeem(update.message, update.effective_user, code)
         return
 
-    # 默认回复
+    # 默认回复（仅私聊）
     await update.message.reply_text(
         "请使用菜单或命令操作 👇\n发送 /start 打开主菜单",
     )
@@ -542,8 +572,8 @@ async def start_bot(token: str):
 
         _bot_app = app
 
-        # 设置命令菜单
-        await app.bot.set_my_commands([
+        # 设置命令菜单（私聊 + 群组）
+        all_commands = [
             BotCommand("start", "打开主菜单"),
             BotCommand("free", "查看免费车位"),
             BotCommand("redeem", "使用兑换码上车"),
@@ -552,12 +582,17 @@ async def start_bot(token: str):
             BotCommand("signin", "每日签到"),
             BotCommand("me", "查看我的信息"),
             BotCommand("help", "查看帮助"),
-        ])
+        ]
+        await app.bot.set_my_commands(all_commands, scope=BotCommandScopeAllPrivateChats())
+        await app.bot.set_my_commands(all_commands, scope=BotCommandScopeAllGroupChats())
 
         logger.info("Telegram Bot 正在启动 (polling)...")
         await app.initialize()
         await app.start()
-        await app.updater.start_polling(drop_pending_updates=True)
+        await app.updater.start_polling(
+            drop_pending_updates=True,
+            allowed_updates=["message", "callback_query"],
+        )
         logger.info("Telegram Bot 已启动")
 
     except Exception as e:
