@@ -67,7 +67,9 @@ def _is_group(update: Update) -> bool:
 
 
 def _get_mention(tg_user) -> str:
-    """获取用户 HTML 格式的@提及链接，点击可跳转并发通知"""
+    """获取用户 @username 格式的提及"""
+    if tg_user.username:
+        return f"@{tg_user.username}"
     return tg_user.mention_html()
 
 
@@ -75,7 +77,10 @@ async def _send_response(message, text, mention="", reply_markup=None):
     """发送响应：有mention时发新消息并@用户，否则回复原消息"""
     if mention:
         full_text = f"{mention}\n{text}"
-        await message.chat.send_message(full_text, reply_markup=reply_markup, parse_mode="HTML")
+        if "<a " in mention:
+            await message.chat.send_message(full_text, reply_markup=reply_markup, parse_mode="HTML")
+        else:
+            await message.chat.send_message(full_text, reply_markup=reply_markup)
     else:
         await message.reply_text(text, reply_markup=reply_markup)
 
@@ -233,6 +238,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     data = query.data
     mention = _get_mention(update.effective_user)
+    _parse_mode = "HTML" if "<a " in mention else None
     chat = query.message.chat
     in_group = _is_group(update)
 
@@ -240,7 +246,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await chat.send_message(
             f"{mention}\n请选择以下操作：",
             reply_markup=_main_menu_keyboard(),
-            parse_mode="HTML",
+            parse_mode=_parse_mode,
         )
     elif data == "free_spots":
         await _show_free_spots(query.message, update.effective_user, mention=mention)
@@ -256,7 +262,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
                     ]),
-                    parse_mode="HTML",
+                    parse_mode=_parse_mode,
                 )
                 return
             teams_result = await team_svc.get_available_teams(session)
@@ -284,7 +290,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
-            parse_mode="HTML",
+            parse_mode=_parse_mode,
         )
     elif data == "waiting_room":
         await _join_waiting_room(query.message, update.effective_user, mention=mention)
@@ -297,7 +303,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
-            parse_mode="HTML",
+            parse_mode=_parse_mode,
         )
     elif data == "sign_in":
         await _do_sign_in(query.message, update.effective_user, mention=mention)
