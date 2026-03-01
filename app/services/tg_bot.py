@@ -115,19 +115,36 @@ async def cmd_free(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """使用兑换码上车"""
+    from app.services.team import TeamService
+    team_svc = TeamService()
+
     async with AsyncSessionLocal() as session:
         user = await _get_or_create_user(session, update.effective_user)
-    if not user.email:
-        await update.message.reply_text(
-            "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
-            "发送 /bindmail 你的邮箱  来绑定\n"
-            "例如：/bindmail user@example.com"
-        )
-        return
+        if not user.email:
+            await update.message.reply_text(
+                "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
+                "发送 /bindmail 你的邮箱  来绑定\n"
+                "例如：/bindmail user@example.com"
+            )
+            return
+        teams_result = await team_svc.get_available_teams(session)
+
+    # 构建车位信息
+    lines = ["🎫 兑换码上车\n"]
+    teams = teams_result.get("teams", []) if teams_result.get("success") else []
+    if teams:
+        total_spots = sum(t["max_members"] - t["current_members"] for t in teams)
+        lines.append(f"当前共 {len(teams)} 个车队可用，剩余 {total_spots} 个车位：")
+        for t in teams:
+            avail = t["max_members"] - t["current_members"]
+            lines.append(f"  • {t['team_name']}（{t['current_members']}/{t['max_members']}，剩余 {avail}）")
+        lines.append("")
+    else:
+        lines.append("⚠️ 当前暂无可用车位，兑换后将自动分配\n")
+    lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
+
     context.user_data["state"] = "waiting_redeem_code"
-    await update.message.reply_text(
-        "🎫 请发送你的兑换码：\n（直接输入兑换码文本即可）"
-    )
+    await update.message.reply_text("\n".join(lines))
 
 
 async def cmd_wait(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -184,20 +201,37 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "free_spots":
         await _show_free_spots(query.message, update.effective_user, edit=True)
     elif data == "redeem_start":
+        from app.services.team import TeamService
+        team_svc = TeamService()
         async with AsyncSessionLocal() as session:
             user = await _get_or_create_user(session, update.effective_user)
-        if not user.email:
-            await query.edit_message_text(
-                "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
-                "发送 /bindmail 你的邮箱  来绑定",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
-                ]),
-            )
-            return
+            if not user.email:
+                await query.edit_message_text(
+                    "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
+                    "发送 /bindmail 你的邮箱  来绑定",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
+                    ]),
+                )
+                return
+            teams_result = await team_svc.get_available_teams(session)
+
+        lines = ["🎫 兑换码上车\n"]
+        teams = teams_result.get("teams", []) if teams_result.get("success") else []
+        if teams:
+            total_spots = sum(t["max_members"] - t["current_members"] for t in teams)
+            lines.append(f"当前共 {len(teams)} 个车队可用，剩余 {total_spots} 个车位：")
+            for t in teams:
+                avail = t["max_members"] - t["current_members"]
+                lines.append(f"  • {t['team_name']}（{t['current_members']}/{t['max_members']}，剩余 {avail}）")
+            lines.append("")
+        else:
+            lines.append("⚠️ 当前暂无可用车位，兑换后将自动分配\n")
+        lines.append("请发送你的兑换码：\n（直接输入兑换码文本即可）")
+
         context.user_data["state"] = "waiting_redeem_code"
         await query.edit_message_text(
-            "🎫 请发送你的兑换码：\n（直接输入兑换码文本即可）",
+            "\n".join(lines),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
@@ -358,8 +392,10 @@ async def _join_waiting_room(message, tg_user, edit=False):
             return
 
         result = await waiting_room_service.join(session, user.email)
+        waiting_count = await waiting_room_service.get_waiting_count(session)
 
-    text = f"{'✅' if result.get('success') else '❌'} {result.get('message', '')}"
+    icon = '✅' if result.get('success') else '❌'
+    text = f"{icon} {result.get('message', '')}\n\n🚌 当前候车室共有 {waiting_count} 人正在等待"
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
     ])
