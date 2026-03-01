@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +9,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/static/js/i18n.js"></script>
     <style>
-        .fs-cta-row {
-            margin-bottom: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
+        .fs-cta-row { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
         .fs-cta {
             display: inline-flex;
             align-items: center;
@@ -24,58 +17,27 @@
             padding: 12px 16px;
             border-radius: 14px;
             text-decoration: none;
-            background: linear-gradient(120deg, #b91c1c, #7f1d1d);
+            background: linear-gradient(120deg,#b91c1c,#7f1d1d);
             color: #f8fafc;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 14px 30px rgba(127, 29, 29, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 14px 30px rgba(127,29,29,0.35), 0 0 0 1px rgba(255,255,255,0.05);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
-        .fs-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 18px 36px rgba(127, 29, 29, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12);
-        }
-
+        .fs-cta:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(127,29,29,0.4), 0 0 0 1px rgba(255,255,255,0.12); }
         .fs-cta-logo {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #d97706, #b91c1c);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            color: #fff7eb;
-            letter-spacing: -0.02em;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+            width: 42px; height: 42px; border-radius: 12px;
+            background: linear-gradient(135deg,#d97706,#b91c1c);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 800; color: #fff7eb; letter-spacing: -0.02em;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
         }
-
-        .fs-cta-text {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-
-        .fs-cta-title {
-            font-weight: 800;
-            font-size: 1rem;
-        }
-
-        .fs-cta-sub {
-            font-size: 0.82rem;
-            color: #fef3c7;
-        }
-
-        .fs-nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
+        .fs-cta-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .fs-cta-title { font-weight: 800; font-size: 1rem; }
+        .fs-cta-sub { font-size: 0.82rem; color: #fef3c7; }
+        .fs-nav { display: flex; flex-wrap: wrap; gap: 8px; }
     </style>
 </head>
-
 <body>
-    {% if festive_enabled %}
     <!-- 飘落梅花/樱花粒子 -->
     <div class="falling-blossoms" aria-hidden="true" id="fallingBlossoms"></div>
     <!-- 金色祥云 -->
@@ -107,7 +69,13 @@
         </div>
     </div>
 
-    <!-- 窗花装饰已移除 -->
+    <!-- 窗花装饰 -->
+    <div class="paper-cuts" aria-hidden="true">
+        <div class="paper-cut paper-cut-tl">✿</div>
+        <div class="paper-cut paper-cut-tr">✿</div>
+        <div class="paper-cut paper-cut-bl">✿</div>
+        <div class="paper-cut paper-cut-br">✿</div>
+    </div>
 
     <!-- 灯笼 -->
     <div class="page-lanterns" aria-hidden="true">
@@ -138,22 +106,42 @@
             </div>
         </div>
     </div>
-    {% endif %}
 
     <div class="container">
         <div class="header">
-            {% if festive_enabled %}
             <div class="header-fu" aria-hidden="true">福</div>
-            {% endif %}
-            <h1><i data-lucide="zap" style="width:32px;height:32px;vertical-align:-4px;margin-right:4px;"></i> <span
-                    data-i18n="freespot_page_title">免费车位</span></h1>
+            <h1><i data-lucide="zap" style="width:32px;height:32px;vertical-align:-4px;margin-right:4px;"></i> <span data-i18n="freespot_page_title">免费车位</span></h1>
             <p class="subtitle" data-i18n="freespot_subtitle">✨ 无需兑换码 · 填写邮箱即可直接上车 ✨</p>
-            {% if festive_enabled %}
             <div class="newyear-chip" data-i18n="newyear_chip">🐴 马年大吉</div>
-            {% endif %}
         </div>
 
-        <!-- 登录与导航已移除 -->
+        <!-- 登录与导航 -->
+        <div class="fs-cta-row">
+            {% if user_data %}
+            <a href="/user/points" class="fs-cta">
+                <div class="fs-cta-logo">LD</div>
+                <div class="fs-cta-text">
+                    <div class="fs-cta-title">已登录 LinuxDo</div>
+                    <div class="fs-cta-sub">{{ user_data.username or user_data.email or '前往用户中心' }}</div>
+                </div>
+            </a>
+            {% else %}
+            <a href="/user/auth/login" class="fs-cta">
+                <div class="fs-cta-logo">LD</div>
+                <div class="fs-cta-text">
+                    <div class="fs-cta-title">使用 LinuxDo 登录</div>
+                    <div class="fs-cta-sub">签到积分 · 积分商城 · 免费车位</div>
+                </div>
+            </a>
+            {% endif %}
+            <div class="fs-nav">
+                <a href="/" class="btn btn-ghost" style="text-decoration:none;">首页</a>
+                <a href="/user/points" class="btn btn-ghost" style="text-decoration:none;">用户中心</a>
+                <a href="/user/waitingroom" class="btn btn-ghost" style="text-decoration:none;">候车室</a>
+                <a href="/user/shop" class="btn btn-ghost" style="text-decoration:none;">积分商城</a>
+                <a href="/user/redeem" class="btn btn-ghost" style="text-decoration:none;">兑换码兑换</a>
+            </div>
+        </div>
 
         <!-- 免费车位主面板 -->
         <div class="card freespot-card">
@@ -166,12 +154,9 @@
             </div>
 
             <div class="form-group">
-                <label for="freeSpotEmail"><i data-lucide="mail"
-                        style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;"></i><span
-                        data-i18n="email_label">邮箱地址</span></label>
+                <label for="freeSpotEmail"><i data-lucide="mail" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;"></i><span data-i18n="email_label">邮箱地址</span></label>
                 <div class="input-wrapper">
-                    <input type="email" id="freeSpotEmail" required placeholder="请输入您的邮箱地址" class="form-input"
-                        data-i18n-placeholder="email_placeholder">
+                    <input type="email" id="freeSpotEmail" required placeholder="请输入您的邮箱地址" class="form-input" data-i18n-placeholder="email_placeholder">
                 </div>
                 <p class="form-help" data-i18n="email_help">邀请将发送到此邮箱，请确保可正常接收</p>
             </div>
@@ -190,17 +175,12 @@
     <!-- Toast 提示 -->
     <div id="toast" class="toast"></div>
 
-    {% if festive_enabled %}
     <script src="/static/js/celebration.js"></script>
-    {% endif %}
     <script src="/static/js/freespot.js"></script>
     <script>
         if (window.lucide) lucide.createIcons();
-        {% if festive_enabled %}
         if (typeof startPhysicsBlossoms === 'function') startPhysicsBlossoms();
         if (typeof initCoupletRotation === 'function') initCoupletRotation();
-        {% endif %}
     </script>
 </body>
-
 </html>

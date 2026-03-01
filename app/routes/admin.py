@@ -1610,6 +1610,12 @@ async def settings_page(
         announcement = await settings_service.get_announcement(db)
         shop_items = await settings_service.get_shop_items(db)
         festive_config = await settings_service.get_festive_config(db)
+        tg_bot_config = await settings_service.get_tg_bot_config(db)
+        try:
+            from app.services.tg_bot import is_running as tg_is_running
+            tg_bot_running = tg_is_running()
+        except Exception:
+            tg_bot_running = False
 
         return templates.TemplateResponse(
             "admin/settings/index.html",
@@ -1655,6 +1661,9 @@ async def settings_page(
                 "announcement_content": announcement["content"],
                 "shop_items": shop_items,
                 "festive_enabled": festive_config["enabled"],
+                "tg_bot_enabled": tg_bot_config.get("enabled", False),
+                "tg_bot_token": tg_bot_config.get("token", ""),
+                "tg_bot_running": tg_bot_running,
             }
         )
 
@@ -1663,6 +1672,48 @@ async def settings_page(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取系统设置失败: {str(e)}"
+        )
+
+
+class TgBotConfigRequest(BaseModel):
+    """电报机器人配置请求"""
+    enabled: bool = Field(False, description="是否启用 TG Bot")
+    token: str = Field("", description="Bot API Token")
+
+
+@router.post("/settings/tg-bot")
+async def update_tg_bot_config(
+    data: TgBotConfigRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_admin)
+):
+    """更新 Telegram Bot 配置并重启 Bot"""
+    try:
+        from app.services.settings import settings_service
+        from app.services.tg_bot import start_bot, stop_bot, is_running
+
+        await settings_service.update_tg_bot_config(db, {
+            "enabled": data.enabled,
+            "token": data.token.strip(),
+        })
+
+        # 停止旧 Bot
+        if is_running():
+            await stop_bot()
+
+        # 如果启用则启动新 Bot
+        if data.enabled and data.token.strip():
+            import asyncio
+            asyncio.create_task(start_bot(data.token.strip()))
+            return JSONResponse(content={"success": True, "message": "TG Bot 配置已保存，Bot 正在启动..."})
+        else:
+            return JSONResponse(content={"success": True, "message": "TG Bot 已停止"})
+
+    except Exception as e:
+        logger.error(f"更新 TG Bot 配置失败: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"success": False, "error": f"操作失败: {str(e)}"}
         )
 
 

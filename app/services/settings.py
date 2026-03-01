@@ -542,5 +542,25 @@ class SettingsService:
         return await self.update_settings(session, settings_to_update)
 
 
+    async def get_tg_bot_config(self, session: AsyncSession) -> Dict[str, Any]:
+        """获取 Telegram Bot 配置"""
+        enabled = await self.get_setting(session, "tg_bot_enabled", "false")
+        token = await self.get_setting(session, "tg_bot_token", "")
+        return {
+            "enabled": enabled.lower() == "true",
+            "token": token,
+        }
+
+    async def update_tg_bot_config(self, session: AsyncSession, config: Dict[str, Any]) -> bool:
+        """更新 Telegram Bot 配置"""
+        settings_to_update = {
+            "tg_bot_enabled": str(bool(config.get("enabled", False))).lower(),
+            "tg_bot_token": config.get("token", ""),
+        }
+        self._cache.pop("tg_bot_enabled", None)
+        self._cache.pop("tg_bot_token", None)
+        return await self.update_settings(session, settings_to_update)
+
+
 # 创建全局实例
 settings_service = SettingsService()

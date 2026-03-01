@@ -122,8 +122,7 @@ class RedemptionService:
         code: Optional[str] = None,
         expires_days: Optional[int] = None,
         is_warranty: bool = False,
-        warranty_days: Optional[int] = None,
-        is_points_only: bool = False
+        warranty_days: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         生成单个兑换码
@@ -183,8 +182,7 @@ class RedemptionService:
                 status="unused",
                 expires_at=expires_at,
                 is_warranty=is_warranty,
-                warranty_days=warranty_days if is_warranty else None,
-                is_points_only=is_points_only
+                warranty_days=warranty_days if is_warranty else None
             )
 
             db_session.add(redemption_code)
@@ -215,8 +213,7 @@ class RedemptionService:
         count: int,
         expires_days: Optional[int] = None,
         is_warranty: bool = False,
-        warranty_days: Optional[int] = None,
-        is_points_only: bool = False
+        warranty_days: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         批量生成兑换码
@@ -272,8 +269,7 @@ class RedemptionService:
                     status="unused",
                     expires_at=expires_at,
                     is_warranty=is_warranty,
-                    warranty_days=warranty_days if is_warranty else None,
-                    is_points_only=is_points_only
+                    warranty_days=warranty_days if is_warranty else None
                 )
                 db_session.add(redemption_code)
 

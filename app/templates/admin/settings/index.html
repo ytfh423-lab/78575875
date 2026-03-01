@@ -7,6 +7,36 @@
     <h2>系统设置</h2>
 </div>
 
+<!-- Telegram Bot 配置 -->
+<div class="content-section">
+    <div class="section-header">
+        <h3>🤖 Telegram Bot</h3>
+        <span style="font-size:0.8rem;padding:2px 10px;border-radius:12px;margin-left:8px;
+            {% if tg_bot_running %}background:#dcfce7;color:#166534;{% else %}background:#fee2e2;color:#991b1b;{% endif %}">
+            {{ '运行中' if tg_bot_running else '未运行' }}
+        </span>
+    </div>
+
+    <form id="tgBotForm" class="settings-form">
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="tgBotEnabled" name="enabled" {% if tg_bot_enabled %}checked{% endif %}>
+                <span>启用 Telegram Bot</span>
+            </label>
+            <p class="form-help">启用后，用户可通过 Telegram Bot 使用免费上车、兑换码、候车室、签到等全部功能</p>
+        </div>
+
+        <div class="form-group">
+            <label for="tgBotToken">Bot API Token</label>
+            <input type="text" id="tgBotToken" name="token" value="{{ tg_bot_token or '' }}"
+                placeholder="从 @BotFather 获取的 API Token" class="form-control">
+            <p class="form-help">在 Telegram 中找 @BotFather → /newbot 创建机器人，获取 API Token</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存并启动 Bot</button>
+    </form>
+</div>
+
 <!-- 代理配置 -->
 <div class="content-section">
     <div class="section-header">
@@ -96,8 +126,7 @@
     <form id="externalApiForm" class="settings-form">
         <div class="form-group">
             <label class="checkbox-label">
-                <input type="checkbox" id="externalApiEnabled" name="enabled" {% if external_api_enabled %}checked{%
-                    endif %}>
+                <input type="checkbox" id="externalApiEnabled" name="enabled" {% if external_api_enabled %}checked{% endif %}>
                 <span>启用外部 API</span>
             </label>
             <p class="form-help">启用后,外部工具可以通过 API 推送账号到系统</p>
@@ -131,229 +160,6 @@
         </div>
 
         <button type="submit" class="btn btn-primary">保存 API 配置</button>
-    </form>
-</div>
-
-<!-- LinuxDo 登录配置 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>🪪 LinuxDo 登录配置</h3>
-        <p class="form-help" style="margin-top:0.5rem">用户登录/注册仅通过 LinuxDo OAuth，此处可在后台动态配置</p>
-    </div>
-
-    <form id="linuxdoOAuthForm" class="settings-form">
-        <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="linuxdoOauthEnabled" name="enabled" {% if linuxdo_oauth_enabled %}checked{%
-                    endif %}>
-                <span>启用 LinuxDo OAuth 登录</span>
-            </label>
-            <p class="form-help">关闭后，用户无法通过 LinuxDo 登录</p>
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoClientId">Client ID</label>
-            <input type="text" id="linuxdoClientId" name="client_id" value="{{ linuxdo_client_id or '' }}"
-                class="form-control" placeholder="LinuxDo OAuth Client ID">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoClientSecret">Client Secret</label>
-            <input type="text" id="linuxdoClientSecret" name="client_secret" value="{{ linuxdo_client_secret or '' }}"
-                class="form-control" placeholder="LinuxDo OAuth Client Secret">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoAuthorizeUrl">Authorize URL</label>
-            <input type="text" id="linuxdoAuthorizeUrl" name="authorize_url"
-                value="{{ linuxdo_authorize_url or 'https://connect.linux.do/oauth2/authorize' }}" class="form-control">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoTokenUrl">Token URL</label>
-            <input type="text" id="linuxdoTokenUrl" name="token_url"
-                value="{{ linuxdo_token_url or 'https://connect.linux.do/oauth2/token' }}" class="form-control">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoUserinfoUrl">Userinfo URL</label>
-            <input type="text" id="linuxdoUserinfoUrl" name="userinfo_url"
-                value="{{ linuxdo_userinfo_url or 'https://connect.linux.do/api/user' }}" class="form-control">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoScope">Scope</label>
-            <input type="text" id="linuxdoScope" name="scope" value="{{ linuxdo_scope or 'read' }}" class="form-control"
-                placeholder="read">
-        </div>
-
-        <div class="form-group">
-            <label for="linuxdoRedirectPath">回调路径</label>
-            <input type="text" id="linuxdoRedirectPath" name="redirect_path"
-                value="{{ linuxdo_redirect_path or '/user/auth/callback' }}" class="form-control"
-                placeholder="/user/auth/callback">
-            <p class="form-help">回调完整地址 = 当前站点域名 + 回调路径</p>
-        </div>
-
-        <button type="submit" class="btn btn-primary">保存 LinuxDo 配置</button>
-    </form>
-</div>
-
-<!-- 质保设置 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>🛡️ 质保设置</h3>
-        <p class="form-help" style="margin-top:0.5rem">设置质保兑换码的保障期限，在此期间用户可以因封号等原因重新兑换</p>
-    </div>
-
-    <form id="warrantyDaysForm" class="settings-form">
-        <div class="form-group">
-            <label for="warrantyDays">质保天数</label>
-            <input type="number" id="warrantyDays" name="days" value="{{ warranty_days }}" min="1" max="3650"
-                class="form-control" placeholder="30" required>
-            <p class="form-help">质保兑换码在首次使用后的此天数内，如遇 Team 封号可重新兑换（默认 30 天）</p>
-        </div>
-        <button type="submit" class="btn btn-primary">保存质保设置</button>
-    </form>
-</div>
-
-<!-- 公告管理 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>📢 公告管理</h3>
-        <p class="form-help" style="margin-top:0.5rem">设置兑换页面顶部显示的公告内容，支持纯文本</p>
-    </div>
-
-    <form id="announcementForm" class="settings-form">
-        <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="announcementEnabled" name="enabled" {% if announcement_enabled %}checked{%
-                    endif %}>
-                <span>启用公告</span>
-            </label>
-            <p class="form-help">启用后，兑换页面顶部将显示公告内容</p>
-        </div>
-
-        <div class="form-group">
-            <label for="announcementContent">公告内容</label>
-            <textarea id="announcementContent" name="content" rows="4" class="form-control"
-                placeholder="请输入公告内容，例如：系统维护通知、活动公告等">{{ announcement_content or '' }}</textarea>
-            <p class="form-help">公告内容将以横幅形式显示在兑换页面顶部</p>
-        </div>
-
-        <div class="form-group" id="announcementPreviewGroup" style="display:none">
-            <label>预览效果</label>
-            <div id="announcementPreview"
-                style="display:flex;align-items:center;gap:12px;padding:0.85rem 1.2rem;background:linear-gradient(135deg,rgba(255,233,165,0.5),rgba(255,245,215,0.6));border:1px solid rgba(244,180,61,0.45);border-radius:12px;">
-                <span style="font-size:1.3rem">📢</span>
-                <span id="previewText" style="font-size:0.9rem;color:#5a3e19;line-height:1.6"></span>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary">保存公告</button>
-    </form>
-</div>
-
-<!-- 维护模式 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>🛠️ 维护模式</h3>
-        <p class="form-help" style="margin-top:0.5rem">启用后，非管理员访问站点将仅显示维护页面和预计剩余时间</p>
-    </div>
-
-    <form id="maintenanceForm" class="settings-form">
-        <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="maintenanceEnabled" name="enabled" {% if maintenance_enabled %}checked{%
-                    endif %}>
-                <span>启用维护模式</span>
-            </label>
-        </div>
-
-        <div class="form-group">
-            <label for="maintenanceEndTime">维护结束时间</label>
-            <input type="datetime-local" id="maintenanceEndTime" name="end_time"
-                value="{{ maintenance_end_time or '' }}" step="1" class="form-control">
-            <p class="form-help">启用维护模式时必须填写，前台会显示剩余倒计时</p>
-        </div>
-
-        <div class="form-group">
-            <label for="maintenanceTitle">维护标题</label>
-            <input type="text" id="maintenanceTitle" name="title" value="{{ maintenance_title or '系统维护中' }}"
-                class="form-control" maxlength="80">
-        </div>
-
-        <div class="form-group">
-            <label for="maintenanceContent">维护内容</label>
-            <textarea id="maintenanceContent" name="content" rows="4" class="form-control"
-                placeholder="请输入维护提示内容">{{ maintenance_content or '系统正在维护，请稍后再试' }}</textarea>
-        </div>
-
-        <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="maintenanceVideoEnabled" name="video_enabled" {% if maintenance_video_enabled
-                    %}checked{% endif %}>
-                <span>展示维护视频（B 站嵌入）</span>
-            </label>
-            <p class="form-help">开启后将在维护页下方显示内嵌视频，建议用于维护说明或教程</p>
-        </div>
-
-        <div class="form-group">
-            <label for="maintenanceVideoEmbed">视频嵌入代码</label>
-            <textarea id="maintenanceVideoEmbed" name="video_embed" rows="3" class="form-control"
-                placeholder="粘贴 iframe 代码">{{ maintenance_video_embed or '<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=393018479&bvid=BV1ad4y1V7wb&cid=971466390&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>' }}</textarea>
-            <p class="form-help">默认使用提供的哔哩哔哩 iframe，管理员可自行替换，保存后前台实时生效</p>
-        </div>
-
-        <button type="submit" class="btn btn-primary">保存维护模式</button>
-    </form>
-</div>
-<!-- 积分商城商品管理 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>🛒 积分商城商品</h3>
-        <p class="form-help" style="margin-top:0.5rem">可上架/下架多个虚拟商品，当前仅支持兑换码型商品，价格按积分扣除。</p>
-    </div>
-
-    <div class="table-container" style="overflow:auto;">
-        <table class="data-table" id="shopItemsTable">
-            <thead>
-                <tr>
-                    <th>上架</th>
-                    <th>Key</th>
-                    <th>名称</th>
-                    <th>描述</th>
-                    <th style="width:120px;">消耗积分</th>
-                    <th style="width:80px;">操作</th>
-                </tr>
-            </thead>
-            <tbody id="shopItemsBody"></tbody>
-        </table>
-    </div>
-
-    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-secondary" id="addShopItem">新增商品</button>
-        <button type="button" class="btn btn-primary" id="saveShopItems">保存商品列表</button>
-        <p class="form-help" style="margin:0;">Key 用于标识商品需唯一；仅开启状态的商品会在前台展示。</p>
-    </div>
-</div>
-
-<!-- 节日装饰设置 -->
-<div class="content-section">
-    <div class="section-header">
-        <h3>🧧 节日装饰</h3>
-        <p class="form-help" style="margin-top:0.5rem">全局控制前台用户页面的对联、灯笼、飘落动画等节日元素的显示与隐藏。</p>
-    </div>
-
-    <form id="festiveForm" class="settings-form">
-        <div class="form-group">
-            <label class="checkbox-label">
-                <input type="checkbox" id="festiveEnabled" name="enabled" {% if festive_enabled %}checked{% endif %}>
-                <span>启用节日装饰</span>
-            </label>
-            <p class="form-help">关闭后前台将恢复极简版页面样式</p>
-        </div>
-        <button type="submit" class="btn btn-primary">保存装饰设置</button>
     </form>
 </div>
 {% endblock %}
@@ -411,13 +217,6 @@
     .btn-sm {
         padding: 0.375rem 0.75rem;
         font-size: 0.8125rem;
-    }
-
-    textarea.form-control {
-        resize: vertical;
-        min-height: 80px;
-        font-family: inherit;
-        line-height: 1.6;
     }
 </style>
 {% endblock %}
@@ -598,277 +397,34 @@
         }
     });
 
-    // LinuxDo OAuth 配置表单
-    document.getElementById('linuxdoOAuthForm').addEventListener('submit', async (e) => {
+    // TG Bot 配置表单
+    document.getElementById('tgBotForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const enabled = document.getElementById('linuxdoOauthEnabled').checked;
-        const client_id = document.getElementById('linuxdoClientId').value.trim();
-        const client_secret = document.getElementById('linuxdoClientSecret').value.trim();
-        const authorize_url = document.getElementById('linuxdoAuthorizeUrl').value.trim();
-        const token_url = document.getElementById('linuxdoTokenUrl').value.trim();
-        const userinfo_url = document.getElementById('linuxdoUserinfoUrl').value.trim();
-        const scope = document.getElementById('linuxdoScope').value.trim() || 'read';
-        const redirect_path = document.getElementById('linuxdoRedirectPath').value.trim() || '/user/auth/callback';
+        const enabled = document.getElementById('tgBotEnabled').checked;
+        const token = document.getElementById('tgBotToken').value.trim();
 
-        if (enabled && (!client_id || !client_secret)) {
-            showToast('启用 LinuxDo OAuth 时必须填写 Client ID 和 Client Secret', 'error');
-            return;
-        }
-
-        if (!redirect_path.startsWith('/')) {
-            showToast('回调路径必须以 / 开头', 'error');
+        if (enabled && !token) {
+            showToast('请填写 Bot API Token', 'error');
             return;
         }
 
         try {
-            const response = await fetch('/admin/settings/linuxdo-oauth', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    enabled,
-                    client_id,
-                    client_secret,
-                    authorize_url,
-                    token_url,
-                    userinfo_url,
-                    scope,
-                    redirect_path
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                showToast('LinuxDo OAuth 配置已保存', 'success');
-            } else {
-                showToast(data.error || '保存失败', 'error');
-            }
-        } catch (error) {
-            showToast('网络错误', 'error');
-        }
-    });
-
-    // 质保天数配置表单
-    document.getElementById('warrantyDaysForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const days = parseInt(document.getElementById('warrantyDays').value);
-
-        if (!days || days < 1 || days > 3650) {
-            showToast('质保天数必须在 1-3650 之间', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch('/admin/settings/warranty-days', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ days })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                showToast(data.message || '质保设置已保存', 'success');
-            } else {
-                showToast(data.error || '保存失败', 'error');
-            }
-        } catch (error) {
-            showToast('网络错误', 'error');
-        }
-    });
-
-    // 公告配置表单
-    const announcementContent = document.getElementById('announcementContent');
-    const announcementPreviewGroup = document.getElementById('announcementPreviewGroup');
-    const previewText = document.getElementById('previewText');
-
-    // 实时预览
-    function updatePreview() {
-        const text = announcementContent.value.trim();
-        if (text) {
-            previewText.textContent = text;
-            announcementPreviewGroup.style.display = '';
-        } else {
-            announcementPreviewGroup.style.display = 'none';
-        }
-    }
-    announcementContent.addEventListener('input', updatePreview);
-    updatePreview();
-
-    document.getElementById('announcementForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const enabled = document.getElementById('announcementEnabled').checked;
-        const content = announcementContent.value.trim();
-
-        try {
-            const response = await fetch('/admin/settings/announcement', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ enabled, content })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                showToast(data.message || '公告已保存', 'success');
-            } else {
-                showToast(data.error || '保存失败', 'error');
-            }
-        } catch (error) {
-            showToast('网络错误', 'error');
-        }
-    });
-
-    // 积分商城商品管理
-    const shopItems = {{ shop_items| tojson }};
-    const shopBody = document.getElementById('shopItemsBody');
-    const addBtn = document.getElementById('addShopItem');
-    const saveBtn = document.getElementById('saveShopItems');
-
-    function renderShopItems(list) {
-        shopBody.innerHTML = '';
-        list.forEach((item, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="checkbox" class="shop-enabled" ${item.enabled ? 'checked' : ''}></td>
-                <td><input type="text" class="form-control shop-key" value="${item.key || ''}" placeholder="唯一 key"></td>
-                <td><input type="text" class="form-control shop-name" value="${item.name || ''}" placeholder="商品名称"></td>
-                <td><input type="text" class="form-control shop-desc" value="${item.desc || ''}" placeholder="商品描述"></td>
-                <td><input type="number" class="form-control shop-cost" value="${item.cost || 0}" min="1" style="width:120px;"></td>
-                <td><button type="button" class="btn btn-sm btn-danger shop-remove">删除</button></td>
-            `;
-            tr.querySelector('.shop-remove').addEventListener('click', () => {
-                tr.remove();
-            });
-            shopBody.appendChild(tr);
-        });
-    }
-
-    renderShopItems(shopItems || []);
-
-    addBtn.addEventListener('click', () => {
-        renderShopItems([
-            ...Array.from(shopBody.querySelectorAll('tr')).map(row => ({
-                enabled: row.querySelector('.shop-enabled').checked,
-                key: row.querySelector('.shop-key').value.trim(),
-                name: row.querySelector('.shop-name').value.trim(),
-                desc: row.querySelector('.shop-desc').value.trim(),
-                cost: parseInt(row.querySelector('.shop-cost').value, 10) || 0,
-            })),
-            { enabled: true, key: '', name: '', desc: '', cost: 10 }
-        ]);
-    });
-
-    saveBtn.addEventListener('click', async () => {
-        const rows = Array.from(shopBody.querySelectorAll('tr'));
-        const payload = rows.map(row => ({
-            enabled: row.querySelector('.shop-enabled').checked,
-            key: row.querySelector('.shop-key').value.trim(),
-            name: row.querySelector('.shop-name').value.trim(),
-            desc: row.querySelector('.shop-desc').value.trim(),
-            cost: parseInt(row.querySelector('.shop-cost').value, 10) || 0,
-        })).filter(i => i.key && i.name && i.cost > 0);
-
-        if (!payload.length) {
-            showToast('请至少保留一个有效商品', 'error');
-            return;
-        }
-        const keys = payload.map(i => i.key);
-        if (new Set(keys).size !== keys.length) {
-            showToast('商品 key 不可重复', 'error');
-            return;
-        }
-
-        try {
-            const res = await fetch('/admin/settings/shop-items', {
+            const response = await fetch('/admin/settings/tg-bot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: payload })
+                body: JSON.stringify({ enabled, token })
             });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                showToast('商城商品已保存', 'success');
+            var data = null;
+            try { data = await response.json(); } catch(x) {}
+            if (response.ok && data && data.success) {
+                showToast(data.message || 'TG Bot 配置已保存', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
             } else {
-                showToast(data.error || '保存失败', 'error');
-            }
-        } catch (err) {
-            showToast('网络错误', 'error');
-        }
-    });
-
-    // 节日装饰设置表单
-    document.getElementById('festiveForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const enabled = document.getElementById('festiveEnabled').checked;
-
-        try {
-            const response = await fetch('/admin/settings/festive', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled })
-            });
-            const data = await response.json();
-            if (response.ok && data.success) {
-                showToast(data.message || '节日装饰配置已保存', 'success');
-            } else {
-                showToast(data.error || '保存失败', 'error');
+                showToast((data && data.error) || ('保存失败 [' + response.status + ']'), 'error');
             }
         } catch (error) {
-            showToast('网络错误', 'error');
-        }
-    });
-
-    // 维护模式配置表单
-    document.getElementById('maintenanceForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const enabled = document.getElementById('maintenanceEnabled').checked;
-        const end_time = document.getElementById('maintenanceEndTime').value;
-        const title = document.getElementById('maintenanceTitle').value.trim() || '系统维护中';
-        const content = document.getElementById('maintenanceContent').value.trim() || '系统正在维护，请稍后再试';
-        const video_enabled = document.getElementById('maintenanceVideoEnabled').checked;
-        const video_embed = document.getElementById('maintenanceVideoEmbed').value.trim();
-
-        if (enabled && !end_time) {
-            showToast('启用维护模式时必须设置结束时间', 'error');
-            return;
-        }
-
-        if (video_enabled && !video_embed) {
-            showToast('请填写视频嵌入代码，或关闭视频开关', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch('/admin/settings/maintenance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ enabled, end_time, title, content, video_enabled, video_embed })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                showToast(data.message || '维护模式配置已保存', 'success');
-                if (data.end_time) {
-                    document.getElementById('maintenanceEndTime').value = data.end_time;
-                }
-            } else {
-                showToast(data.error || '保存失败', 'error');
-            }
-        } catch (error) {
-            showToast('网络错误', 'error');
+            showToast('网络错误: ' + error.message, 'error');
         }
     });
 </script>

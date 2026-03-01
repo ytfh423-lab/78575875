@@ -229,6 +229,26 @@ class PointTransaction(Base):
     )
 
 
+class TelegramUser(Base):
+    """Telegram 用户表"""
+    __tablename__ = "telegram_users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tg_user_id = Column(String(64), unique=True, nullable=False, comment="Telegram 用户 ID")
+    username = Column(String(100), comment="Telegram 用户名")
+    first_name = Column(String(255), comment="名字")
+    last_name = Column(String(255), comment="姓氏")
+    email = Column(String(255), comment="绑定邮箱")
+    points = Column(Integer, default=0, nullable=False, comment="当前积分")
+    last_sign_in_at = Column(DateTime, comment="最后签到时间")
+    created_at = Column(DateTime, server_default=func.now(), comment="注册时间")
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
+
+    __table_args__ = (
+        Index("idx_tg_user_id", "tg_user_id"),
+    )
+
+
 class ShopOrder(Base):
     """积分商城订单表"""
     __tablename__ = "shop_orders"

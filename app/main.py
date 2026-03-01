@@ -59,9 +59,27 @@ async def lifespan(app: FastAPI):
         logger.info("数据库初始化完成")
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
-    
+
+    # 3. 启动 Telegram Bot（如果已配置）
+    try:
+        from app.services.tg_bot import start_bot as tg_start_bot
+        from app.services.settings import settings_service
+        async with AsyncSessionLocal() as session:
+            tg_config = await settings_service.get_tg_bot_config(session)
+        if tg_config.get("enabled") and tg_config.get("token"):
+            asyncio.create_task(tg_start_bot(tg_config["token"]))
+    except Exception as e:
+        logger.error(f"启动 Telegram Bot 失败: {e}")
+
     yield
-    
+
+    # 停止 Telegram Bot
+    try:
+        from app.services.tg_bot import stop_bot as tg_stop_bot
+        await tg_stop_bot()
+    except Exception as e:
+        logger.error(f"停止 Telegram Bot 失败: {e}")
+
     # 关闭连接
     await close_db()
     logger.info("系统正在关闭，已释放数据库连接")

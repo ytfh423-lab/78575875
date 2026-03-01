@@ -109,11 +109,10 @@ class RedeemFlowService:
             结果字典,包含 success, team_id, error
         """
         try:
-            # 查询可用 Team，按过期时间升序排序（排除免费车位 Team）
+            # 查询可用 Team，按过期时间升序排序
             stmt = select(Team).where(
                 Team.status == "active",
-                Team.current_members < Team.max_members,
-                Team.is_free_spot == False
+                Team.current_members < Team.max_members
             ).order_by(Team.expires_at.asc()).limit(1)
 
             result = await db_session.execute(stmt)
@@ -224,16 +223,7 @@ class RedeemFlowService:
                         "error": f"Team ID {team_id} 不存在"
                     }
 
-                # 4. 检查是否为免费车位 Team（不允许兑换码上车）
-                if team.is_free_spot:
-                    return {
-                        "success": False,
-                        "message": None,
-                        "team_info": None,
-                        "error": "该 Team 为免费车位，不能使用兑换码上车"
-                    }
-
-                # 5. 再次检查 Team 容量 (防止并发冲突)
+                # 4. 再次检查 Team 容量 (防止并发冲突)
                 if team.current_members >= team.max_members:
                     return {
                         "success": False,
@@ -541,79 +531,6 @@ class RedeemFlowService:
             logger.error(f"质保兑换失败: {e}")
             return {"success": False, "message": None, "team_info": None,
                     "error": f"质保兑换失败: {str(e)}"}
-
-
-    async def free_spot_join(
-        self,
-        email: str,
-        team_id: int,
-        db_session: AsyncSession
-    ) -> Dict[str, Any]:
-        """
-        免费车位加入：无需兑换码，直接加入指定的免费车位 Team
-        """
-        try:
-            async with db_session.begin_nested():
-                # 1. 锁定 Team 行
-                stmt = select(Team).where(Team.id == team_id).with_for_update()
-                result = await db_session.execute(stmt)
-                team = result.scalar_one_or_none()
-
-                if not team:
-                    return {"success": False, "message": None, "error": f"Team ID {team_id} 不存在"}
-
-                if not team.is_free_spot:
-                    return {"success": False, "message": None, "error": "该 Team 不是免费车位"}
-
-                if team.is_exclusive:
-                    return {"success": False, "message": None, "error": "该车位为打赏用户专属，请使用专属链接上车"}
-
-                if team.status != "active":
-                    return {"success": False, "message": None, "error": f"Team 状态异常: {team.status}"}
-
-                if team.current_members >= team.max_members:
-                    return {"success": False, "message": None, "error": "该车位已满"}
-
-                # 2. 解密 Token
-                try:
-                    access_token = encryption_service.decrypt_token(team.access_token_encrypted)
-                except Exception as e:
-                    logger.error(f"解密 Token 失败: {e}")
-                    return {"success": False, "message": None, "error": f"解密 Token 失败: {str(e)}"}
-
-                # 3. 发送邀请
-                invite_result = await self.chatgpt_service.send_invite(
-                    access_token, team.account_id, email, db_session
-                )
-                if not invite_result["success"]:
-                    return {"success": False, "message": None,
-                            "error": f"发送邀请失败: {invite_result['error']}"}
-
-                # 4. 更新成员数
-                team.current_members += 1
-                if team.current_members >= team.max_members:
-                    team.status = "full"
-
-                await db_session.commit()
-
-                logger.info(f"免费车位加入成功: {email} -> Team {team_id}")
-
-                return {
-                    "success": True,
-                    "message": f"成功加入 Team: {team.team_name}，请查收邮箱邀请",
-                    "team_info": {
-                        "team_id": team.id,
-                        "team_name": team.team_name,
-                        "account_id": team.account_id,
-                        "expires_at": team.expires_at.isoformat() if team.expires_at else None
-                    },
-                    "error": None
-                }
-
-        except Exception as e:
-            await db_session.rollback()
-            logger.error(f"免费车位加入失败: {e}")
-            return {"success": False, "message": None, "error": f"加入失败: {str(e)}"}
 
 
 # 创建全局实例
