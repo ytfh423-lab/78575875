@@ -87,7 +87,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     display = user.first_name or user.username or f"用户{user.tg_user_id}"
     await update.message.reply_text(
-        f"👋 你好 {display}！欢迎使用 GPT Team 管理系统\n\n"
+        f"👋 你好 {display}！欢迎使用 GPT 车队管理系统\n\n"
         "请选择以下操作：",
         reply_markup=_main_menu_keyboard(),
     )
@@ -96,16 +96,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /help 命令"""
     await update.message.reply_text(
-        "📖 *可用命令*\n\n"
-        "/start \\- 主菜单\n"
-        "/free \\- 查看免费车位\n"
-        "/redeem \\- 使用兑换码上车\n"
-        "/wait \\- 加入候车室\n"
-        "/bindmail \\- 绑定邮箱\n"
-        "/signin \\- 每日签到\n"
-        "/me \\- 我的信息\n"
-        "/help \\- 帮助",
-        parse_mode="MarkdownV2",
+        "📖 可用命令\n\n"
+        "/start - 主菜单\n"
+        "/free - 查看免费车位\n"
+        "/redeem - 使用兑换码上车\n"
+        "/wait - 加入候车室\n"
+        "/bindmail - 绑定邮箱\n"
+        "/signin - 每日签到\n"
+        "/me - 我的信息\n"
+        "/help - 帮助",
     )
 
 
@@ -122,7 +121,7 @@ async def cmd_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "⚠️ 请先绑定邮箱才能使用兑换码\n\n"
             "发送 /bindmail 你的邮箱  来绑定\n"
-            "例如: /bindmail user@example.com"
+            "例如：/bindmail user@example.com"
         )
         return
     context.user_data["state"] = "waiting_redeem_code"
@@ -141,8 +140,8 @@ async def cmd_bindmail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
         await update.message.reply_text(
-            "📧 用法: /bindmail 你的邮箱\n"
-            "例如: /bindmail user@example.com"
+            "📧 用法：/bindmail 你的邮箱\n"
+            "例如：/bindmail user@example.com"
         )
         return
 
@@ -156,7 +155,7 @@ async def cmd_bindmail(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user.email = email
         await session.commit()
 
-    await update.message.reply_text(f"✅ 邮箱已绑定: {email}")
+    await update.message.reply_text(f"✅ 邮箱已绑定：{email}")
 
 
 async def cmd_signin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -207,7 +206,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _join_waiting_room(query.message, update.effective_user, edit=True)
     elif data == "bind_email":
         await query.edit_message_text(
-            "📧 请发送绑定邮箱命令：\n/bindmail 你的邮箱\n\n例如: /bindmail user@example.com",
+            "📧 请发送绑定邮箱命令：\n/bindmail 你的邮箱\n\n例如：/bindmail user@example.com",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
@@ -326,14 +325,14 @@ async def _join_free_team(message, tg_user, team_id: int):
     if join_result.get("success"):
         await message.edit_text(
             f"✅ 上车成功！请查收 {user.email} 的邀请邮件\n\n"
-            f"Team: {team.team_name}",
+            f"车队：{team.team_name}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
         )
     else:
         await message.edit_text(
-            f"❌ 上车失败: {join_result.get('error', '未知错误')}",
+            f"❌ 上车失败：{join_result.get('error', '未知错误')}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回", callback_data="free_spots")]
             ]),
@@ -378,7 +377,7 @@ async def _do_redeem(message, tg_user, code: str):
         user = await _get_or_create_user(session, tg_user)
 
         if not user.email:
-            await message.reply_text("⚠️ 请先绑定邮箱: /bindmail 你的邮箱")
+            await message.reply_text("⚠️ 请先绑定邮箱：/bindmail 你的邮箱")
             return
 
         # 验证兑换码
@@ -397,8 +396,8 @@ async def _do_redeem(message, tg_user, code: str):
         team_info = result.get("team_info", {})
         await message.reply_text(
             f"✅ 上车成功！\n\n"
-            f"Team: {team_info.get('team_name', '-')}\n"
-            f"邮箱: {user.email}\n\n"
+            f"车队：{team_info.get('team_name', '-')}\n"
+            f"邮箱：{user.email}\n\n"
             f"请查收邀请邮件",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
@@ -406,7 +405,7 @@ async def _do_redeem(message, tg_user, code: str):
         )
     else:
         await message.reply_text(
-            f"❌ 兑换失败: {result.get('error', '未知错误')}",
+            f"❌ 兑换失败：{result.get('error', '未知错误')}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
             ]),
@@ -423,12 +422,12 @@ async def _do_sign_in(message, tg_user, edit=False):
 
         today = date.today()
         if user.last_sign_in_at and user.last_sign_in_at.date() == today:
-            text = f"⏰ 今天已经签到过了\n当前积分: {user.points}"
+            text = f"⏰ 今天已经签到过了\n当前积分：{user.points}"
         else:
             user.points += daily_points
             user.last_sign_in_at = datetime.now()
             await session.commit()
-            text = f"✅ 签到成功！+{daily_points} 积分\n当前积分: {user.points}"
+            text = f"✅ 签到成功！+{daily_points} 积分\n当前积分：{user.points}"
 
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
@@ -457,11 +456,11 @@ async def _show_my_info(message, tg_user, edit=False):
 
     text = (
         f"👤 *{display}*\n\n"
-        f"TG ID: `{user.tg_user_id}`\n"
-        f"邮箱: {email_str}\n"
-        f"积分: {user.points}\n"
-        f"最后签到: {sign_in_str}\n"
-        f"注册时间: {reg_str}"
+        f"账号编号：`{user.tg_user_id}`\n"
+        f"邮箱：{email_str}\n"
+        f"积分：{user.points}\n"
+        f"最后签到：{sign_in_str}\n"
+        f"注册时间：{reg_str}"
     )
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ 返回主菜单", callback_data="main_menu")]
@@ -509,14 +508,14 @@ async def start_bot(token: str):
 
         # 设置命令菜单
         await app.bot.set_my_commands([
-            BotCommand("start", "主菜单"),
+            BotCommand("start", "打开主菜单"),
             BotCommand("free", "查看免费车位"),
             BotCommand("redeem", "使用兑换码上车"),
             BotCommand("wait", "加入候车室"),
             BotCommand("bindmail", "绑定邮箱"),
             BotCommand("signin", "每日签到"),
-            BotCommand("me", "我的信息"),
-            BotCommand("help", "帮助"),
+            BotCommand("me", "查看我的信息"),
+            BotCommand("help", "查看帮助"),
         ])
 
         logger.info("Telegram Bot 正在启动 (polling)...")
